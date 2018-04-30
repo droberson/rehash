@@ -292,67 +292,12 @@ def parse_cli():
                 Settings.resolved = args.host
 
     if args.port:
-        # Parse the port list supplied via CLI and add each port to
-        # the Settings.ports list. Make sure port numbers are valid.
-        # No input via user should be unaccounted for and input should
-        # be correct/logical.
-        #
-        # Ex: 1,2,3 => [1, 2, 3]
-        #     1-3   => [1, 2, 3]
-        #     1,2-3 => [1, 2, 3]
-        #     1-2,3 => [1, 2, 3]
-        #
-
-        # TODO: This is uglier than sin. There has to be a better way
         # Verify supplied port string is correct and populate
         # Settings.ports[] with a list of ports to use.
-        allowed = set(string.digits + "-" + ",")
-        if (set(args.port) <= allowed) is False:
+        Settings.ports = build_port_list(args.port)
+        if Settings.ports is None:
             fatal("Invalid port range: %s" % args.port)
 
-        current = ""
-        startport = ""
-        for char in args.port:
-            if char == ",":
-                if current == "":
-                    continue
-                if not valid_port(int(current)):
-                    fatal("Invalid port range: %s" % args.port)
-                if startport and current:
-                    if int(startport) > int(current):
-                        fatal("Invalid port range: %s" % args.port)
-                    # range() doesnt include last digit, so add one
-                    for port in range(int(startport), int(current) + 1):
-                        Settings.ports.append(int(port))
-                    startport = ""
-                    current = ""
-                else:
-                    Settings.ports.append(int(current))
-                    current = ""
-                    continue
-            if char == "-":
-                if startport:
-                    fatal("Invalid port range: %s" % args.port)
-                startport = current
-                current = ""
-                continue
-            if char.isdigit():
-                current += char
-        # Deal with leftovers
-        if startport and current:
-            if not valid_port(int(current)) or \
-                not valid_port(int(startport)):
-                fatal("Invalid port range: %s" % args.port)
-            if int(startport) > int(current):
-                fatal("Invalid port range: %s" % args.port)
-            for port in range(int(startport), int(current) + 1):
-                Settings.ports.append(int(port))
-        elif current:
-            if valid_port(int(current)):
-                Settings.ports.append(int(current))
-            else:
-                fatal("Invalid port range: %s" % args.port)
-        print(Settings.ports)
     return args
 
 

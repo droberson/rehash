@@ -1,6 +1,6 @@
 import socket
 import struct
-
+import string
 
 def valid_ip_address(ip_address):
     ipv4 = valid_ipv4_address(ip_address)
@@ -25,10 +25,34 @@ def valid_ipv6_address(ip_address):
 
 
 def valid_port(port):
-    if int(port) > 0 and int(port) < 65536:
-        return True
+    try:
+        if int(port) > 0 and int(port) < 65536:
+            return True
+    except ValueError:
+        return False
     return False
 
+
+# Nmap style port ranges: 1-5,10,60-90,100
+def build_port_list(portlist):
+    allowed = set(string.digits + "-" + ",")
+    if (set(portlist) <= allowed) is False:
+        return None
+    ports = portlist.split(",")
+    final = []
+    for port in ports:
+        if "-" in str(port):
+            tmp = port.split("-")
+            if len(tmp) != 2:
+                return None
+            if int(tmp[0]) > int(tmp[1]):
+                return None
+            final += range(int(tmp[0]), int(tmp[1]) + 1)
+            continue
+        final.append(int(port))
+    if all(valid_port(port) for port in final) is True:
+        return set(final)
+    return None
 
 def ip_to_long(ip_address):
     tmp = socket.inet_aton(ip_address)

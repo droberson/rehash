@@ -1,0 +1,40 @@
+- general
+  - fransfer files (get/put instead of using cat/base64/paste)
+  - save session to a file
+  - obsfucate shell commands
+  - remember hosts so discovery doesn't have to happen again (or dont)
+- newshell
+  - unset HISTFILE
+  - two spaces bash method for hiding commands
+  - watch w/who for activity
+  - add to database
+  - install c2 software/rat
+  - determine other user accounts
+  - find writable directories
+  - check for privesc
+  - check for remote syslogging/monitoring agents
+  - check for LD_PRELOAD
+- newroot
+  - detect OS
+  - determine privileges
+  - determine capabilities (gdb? curl? base64? ping? ...)
+  - add to database
+  - install persistence/rootkit/c2/whatever
+- wordlist builder
+- looter
+  - world-writable files
+  - hashes/passwords
+  - ssh keys/knownhosts
+  - .htaccess
+  - passwd/shadow/htaccess
+  - mail spools
+  - grep/yara for sensitive stuff
+  - home directories
+- subrute
+- curl/wget portscan 
+- upgrade to pty
+- find security tools installed
+- mimipenguin
+- gdbrpc/ptrace injector
+- x11 clipboard sniffer
+

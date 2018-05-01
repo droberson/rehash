@@ -106,7 +106,15 @@ class Settings(object):
 
 
 def fatal(msg):
-    print(msg)
+    """ fatal() -- Prints a message to stderr and exits with EX_USAGE.
+
+    Args:
+        msg (str) - Message to display prior to exiting.
+
+    Returns:
+        Nothing.
+    """
+    print(msg, file=sys.stderr)
     exit(os.EX_USAGE)
 
 

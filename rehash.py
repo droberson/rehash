@@ -280,7 +280,7 @@ def parse_cli():
 
     # Check sanity of supplied CLI arguments.
 
-    # This should be before most things
+    ## This should be before most things
     Settings.set("dns", True if args.nodns is False else False)
 
     ## Make sure IPv4 and IPv6 aren't both specified. Default to IPv4.
@@ -296,6 +296,8 @@ def parse_cli():
     if args.ipv6:
         Settings.set("family", socket.AF_INET6)
 
+    ## Make sure source address is valid
+    ## TODO: bind() or similar check to make sure this host is valid
     if args.source:
         if valid_ip_address(args.source):
             Settings.set("source", args.source)
@@ -308,7 +310,8 @@ def parse_cli():
         else:
             fatal("[-] DNS resolution is disabled and hostname provided")
 
-    # All the True/False flags here
+    ## All the True/False flags here
+    ## TODO move this higher up
     Settings.set("ipv4", args.ipv4)
     Settings.set("ipv6", args.ipv6)
     Settings.set("broadcast", args.broadcast)
@@ -321,11 +324,20 @@ def parse_cli():
     Settings.set("verbose", args.verbose)
     Settings.set("zero", args.zero)
 
+    ## Toggle UDP mode
     if Settings.get("udp") is True:
         Settings.set("socktype", socket.SOCK_DGRAM)
 
-    # TODO --command
-    # TODO --exec
+    ## Deal with --command and --exec
+    if args.command and args.exec:
+        fatal("[-] -c and -e set.")
+    if args.command:
+        # TODO validate this. commands are passed to /bin/sh -c
+        Settings.set("command", args.command)
+    if args.exec:
+        # TODO validate this binary exists and permissions are correct
+        Settings.set("exec", args.exec)
+
     # TODO --outfile
     # TODO --localport
     # TODO --tos

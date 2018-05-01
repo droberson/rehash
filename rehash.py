@@ -2,6 +2,10 @@
 
 """ rehash.py -- Netcat-like hacking harness.
       by Daniel Roberson @dmfroberson                   April/2018
+
+    TODO: -F option to populate ports list via /etc/services
+    TODO: named ports. ex: ./rehash.py localhost ssh
+    TODO: option to log outfile in pcap format?
 """
 
 import os
@@ -34,6 +38,7 @@ class Settings(object):
         "keepalive" : False,
         "listen" : False,
         "logfile" : None,
+        "outfile" : None,
         "port" : None,
         "randomize" : False,
         "socktype" : socket.SOCK_STREAM,
@@ -58,7 +63,7 @@ class Settings(object):
         "ipv6",
         "keepalive",
         "listen",
-        "logfile",
+        "outfile",
         "port",
         "randomize",
         "socktype",
@@ -248,7 +253,6 @@ def parse_cli():
         default=False,
         help="Verbose output")
 
-    # TODO fractional seconds: 0.1
     parser.add_argument(
         "-w",
         "--wait",
@@ -338,10 +342,12 @@ def parse_cli():
         # TODO validate this binary exists and permissions are correct
         Settings.set("exec", args.exec)
 
-    # TODO --outfile
-    # TODO --localport
+    if args.outfile:
+        # TODO verify file exists or can be written
+        # TODO date(1) style format strings: --outfile out-%Y-%m-%d.log
+        Settings.set("outfile", args.outfile)
     # TODO --tos
-    # TODO --wait
+    # TODO --wait (fractional seconds)
 
     if args.host and args.listen:
         parser.print_help(sys.stderr)
@@ -372,9 +378,9 @@ def parse_cli():
         else:
             fatal("[-] Invalid port: %s" % args.localport)
 
-    # port and ports? nc default behavior is to attempt to bind() -p
-    # -l has to have -p, but -p doesn't need -l
-    # if port list is more than one port, -z must be set (or assumed)
+    # TODO port and ports? nc default behavior is to attempt to bind() -p
+    # TODO -l has to have -p, but -p doesn't need -l
+    # TODO if port list is more than one port, -z must be set (or assumed)
     return args
 
 
@@ -385,14 +391,17 @@ def main():
         None
 
     Returns:
-        Nothing
+        EX_OK on success
+        EX_USAGE on failure
     """
     args = parse_cli()
 
-    if Settings.ip and Settings.ports:
-        print(Settings.ip, Settings.ports)
+    return os.EX_OK
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        exit(main())
+    except KeyboardInterrupt:
+        exit(os.EX_OK)
 

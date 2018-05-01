@@ -54,6 +54,7 @@ def build_port_list(portlist):
         return set(final)
     return None
 
+
 def ip_to_long(ip_address):
     tmp = socket.inet_aton(ip_address)
     return struct.unpack("!L", tmp)[0]

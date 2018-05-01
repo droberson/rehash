@@ -51,7 +51,7 @@ def build_port_list(portlist):
             continue
         final.append(int(port))
     if all(valid_port(port) for port in final) is True:
-        return set(final)
+        return list(set(final))
     return None
 
 

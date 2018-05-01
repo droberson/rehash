@@ -243,7 +243,7 @@ def parse_cli():
 
     parser.add_argument(
         "-z",
-        "--zeromode",
+        "--zero",
         action="store_true",
         default=False,
         help="Zero IO mode (for scanning)")
@@ -278,8 +278,23 @@ def parse_cli():
     Settings.set("dns", True if args.nodns is False else False)
     Settings.set("ipv4", args.ipv4)
     Settings.set("ipv6", args.ipv6)
+    Settings.set("broadcast", args.broadcast)
+    Settings.set("crlf", args.crlf)
+    Settings.set("keepalive", args.keepalive)
     Settings.set("listen", args.listen)
+    Settings.set("randomize", args.randomize)
+    Settings.set("telnet", args.telnet)
+    Settings.set("udp", args.udp)
+    Settings.set("verbose", args.verbose)
+    Settings.set("zero", args.zero)
 
+    # TODO --command
+    # TODO --exec
+    # TODO --outfile
+    # TODO --localport
+    # TODO --source
+    # TODO --tos
+    # TODO --wait
 
     if args.host and args.listen:
         fatal("[-] wtf. -l option doesnt require a host argument")

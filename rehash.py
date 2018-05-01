@@ -5,6 +5,7 @@
 """
 
 import os
+import sys
 import socket
 import string
 import argparse
@@ -267,14 +268,18 @@ def parse_cli():
 
     # Make sure IPv4 and IPv6 aren't both specified. Default to IPv4.
     if args.ipv4 and args.ipv6:
-        fatal("[-] Hey asshole. Pick either IPv4 or IPv6.")
+        parser.print_help(sys.stderr)
+        exit(os.EX_USAGE)
 
     if not args.ipv4 and not args.ipv6:
         args.ipv4 = True
 
+    # All the True/False flags here
     Settings.set("dns", True if args.nodns is False else False)
     Settings.set("ipv4", args.ipv4)
     Settings.set("ipv6", args.ipv6)
+    Settings.set("listen", args.listen)
+
 
     if args.host and args.listen:
         fatal("[-] wtf. -l option doesnt require a host argument")
@@ -312,6 +317,8 @@ def main():
     """
     args = parse_cli()
 
+    if Settings.ip and Settings.ports:
+        print(Settings.ip, Settings.ports)
 
 if __name__ == "__main__":
     main()

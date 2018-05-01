@@ -27,6 +27,7 @@ class Settings(object):
         "crlf" : False,
         "dns" : True,
         "exec" : None,
+        "family" : None,
         "interval" : 0,
         "ipv4" : False,
         "ipv6" : False,
@@ -35,6 +36,7 @@ class Settings(object):
         "logfile" : None,
         "port" : None,
         "randomize" : False,
+        "socktype" : socket.SOCK_STREAM,
         "source" : None,
         "telnet" : False,
         "tos" : None,
@@ -50,6 +52,7 @@ class Settings(object):
         "crlf",
         "dns",
         "exec",
+        "family",
         "interval",
         "ipv4",
         "ipv6",
@@ -58,6 +61,7 @@ class Settings(object):
         "logfile",
         "port",
         "randomize",
+        "socktype",
         "source",
         "telnet",
         "tos",
@@ -67,6 +71,7 @@ class Settings(object):
         "zero",
     ]
 
+    # TODO make these settings instead of variables
     ip = ""
     resolved = ""
     ports = []
@@ -267,6 +272,9 @@ def parse_cli():
 
     # Check sanity of supplied CLI arguments.
 
+    # This should be before most things
+    Settings.set("dns", True if args.nodns is False else False)
+
     ## Make sure IPv4 and IPv6 aren't both specified. Default to IPv4.
     if args.ipv4 and args.ipv6:
         parser.print_help(sys.stderr)
@@ -275,8 +283,24 @@ def parse_cli():
     if not args.ipv4 and not args.ipv6:
         args.ipv4 = True
 
+    if args.ipv4:
+        Settings.set("family", socket.AF_INET)
+    if args.ipv6:
+        Settings.set("family", socket.AF_INET6)
+
+    if args.source:
+        if valid_ip_address(args.source):
+            Settings.set("source", args.source)
+        elif Settings.get("dns"):
+            tmp = hostname_to_ip(args.source)
+            if tmp:
+                Settings.set("source", tmp)
+            else:
+                fatal("[-] Invalid hostname: %s" % args.source)
+        else:
+            fatal("[-] DNS resolution is disabled and hostname provided")
+
     # All the True/False flags here
-    Settings.set("dns", True if args.nodns is False else False)
     Settings.set("ipv4", args.ipv4)
     Settings.set("ipv6", args.ipv6)
     Settings.set("broadcast", args.broadcast)
@@ -289,11 +313,13 @@ def parse_cli():
     Settings.set("verbose", args.verbose)
     Settings.set("zero", args.zero)
 
+    if Settings.get("udp") is True:
+        Settings.set("socktype", socket.SOCK_DGRAM)
+
     # TODO --command
     # TODO --exec
     # TODO --outfile
     # TODO --localport
-    # TODO --source
     # TODO --tos
     # TODO --wait
 
@@ -326,7 +352,7 @@ def parse_cli():
         else:
             fatal("[-] Invalid port: %s" % args.localport)
 
-    # port and ports?
+    # port and ports? nc default behavior is to attempt to bind() -p
     # -l has to have -p, but -p doesn't need -l
     # if port list is more than one port, -z must be set (or assumed)
     return args

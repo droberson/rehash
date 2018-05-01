@@ -8,6 +8,7 @@ import os
 import sys
 import socket
 import string
+import random
 import argparse
 
 from network_common import *
@@ -266,10 +267,10 @@ def parse_cli():
 
     # Check sanity of supplied CLI arguments.
 
-    # Make sure IPv4 and IPv6 aren't both specified. Default to IPv4.
+    ## Make sure IPv4 and IPv6 aren't both specified. Default to IPv4.
     if args.ipv4 and args.ipv6:
         parser.print_help(sys.stderr)
-        exit(os.EX_USAGE)
+        fatal("[-] Specified IPv4 and IPv6")
 
     if not args.ipv4 and not args.ipv6:
         args.ipv4 = True
@@ -297,27 +298,37 @@ def parse_cli():
     # TODO --wait
 
     if args.host and args.listen:
-        fatal("[-] wtf. -l option doesnt require a host argument")
+        parser.print_help(sys.stderr)
+        fatal("[-] Specified a host and -l option")
 
     if args.host:
-        # Verify hostname/ip address
+        # Verify hostname/IP address
         Settings.ip = args.host
         if valid_ip_address(Settings.ip) is False:
             if Settings.get("dns") is False:
-                fatal("Invalid IP address: %s" % Settings.ip)
-            Settings.ip = hostname_to_ip(Settings.ip)
-            if Settings.ip is None:
-                fatal("Invalid host: %s" % Settings.ip)
-            else:
+                fatal("[-] Invalid IP address: %s" % Settings.ip)
+            if hostname_to_ip(Settings.ip):
                 Settings.resolved = args.host
+            else:
+                fatal("[-] Invalid hostname: %s" % Settings.ip)
 
     if args.port:
-        # Verify supplied port string is correct and populate
-        # Settings.ports[] with a list of ports to use.
         Settings.ports = build_port_list(args.port)
         if Settings.ports is None:
             fatal("Invalid port range: %s" % args.port)
 
+        if args.randomize:
+            random.shuffle(Settings.ports)
+
+    if args.localport:
+        if valid_port(args.localport):
+            Settings.port = int(args.localport)
+        else:
+            fatal("[-] Invalid port: %s" % args.localport)
+
+    # port and ports?
+    # -l has to have -p, but -p doesn't need -l
+    # if port list is more than one port, -z must be set (or assumed)
     return args
 
 
@@ -334,6 +345,7 @@ def main():
 
     if Settings.ip and Settings.ports:
         print(Settings.ip, Settings.ports)
+
 
 if __name__ == "__main__":
     main()

@@ -282,10 +282,23 @@ def parse_cli():
 
     args = parser.parse_args()
 
-    # Check sanity of supplied CLI arguments.
+    # Apply settings and check sanity of supplied CLI arguments.
 
     ## This should be before most things
     Settings.set("dns", True if args.nodns is False else False)
+
+    ## Simple True/False flags here
+    Settings.set("ipv4", args.ipv4)
+    Settings.set("ipv6", args.ipv6)
+    Settings.set("broadcast", args.broadcast)
+    Settings.set("crlf", args.crlf)
+    Settings.set("keepalive", args.keepalive)
+    Settings.set("listen", args.listen)
+    Settings.set("randomize", args.randomize)
+    Settings.set("telnet", args.telnet)
+    Settings.set("udp", args.udp)
+    Settings.set("verbose", args.verbose)
+    Settings.set("zero", args.zero)
 
     ## Make sure IPv4 and IPv6 aren't both specified. Default to IPv4.
     if args.ipv4 and args.ipv6:
@@ -314,20 +327,6 @@ def parse_cli():
         else:
             fatal("[-] DNS resolution is disabled and hostname provided")
 
-    ## All the True/False flags here
-    ## TODO move this higher up
-    Settings.set("ipv4", args.ipv4)
-    Settings.set("ipv6", args.ipv6)
-    Settings.set("broadcast", args.broadcast)
-    Settings.set("crlf", args.crlf)
-    Settings.set("keepalive", args.keepalive)
-    Settings.set("listen", args.listen)
-    Settings.set("randomize", args.randomize)
-    Settings.set("telnet", args.telnet)
-    Settings.set("udp", args.udp)
-    Settings.set("verbose", args.verbose)
-    Settings.set("zero", args.zero)
-
     ## Toggle UDP mode
     if Settings.get("udp") is True:
         Settings.set("socktype", socket.SOCK_DGRAM)
@@ -342,19 +341,36 @@ def parse_cli():
         # TODO validate this binary exists and permissions are correct
         Settings.set("exec", args.exec)
 
+	## Output file.
     if args.outfile:
         # TODO verify file exists or can be written
         # TODO date(1) style format strings: --outfile out-%Y-%m-%d.log
         Settings.set("outfile", args.outfile)
-    # TODO --tos
-    # TODO --wait (fractional seconds)
 
+	## Type of Service
+    if args.tos:
+        # TODO validate this. setsockopt() may be able to check this
+        Settings.set("tos", args.tos)
+
+	## Timeout
+    if args.wait:
+        Settings.set("wait", float(args.wait))
+        print(Settings.get("wait"))
+
+	## Listening
     if args.host and args.listen:
         parser.print_help(sys.stderr)
         fatal("[-] Specified a host and -l option")
+    if args.localport:
+        if valid_port(args.localport):
+            Settings.port = int(args.localport)
+        else:
+            fatal("[-] Invalid port: %s" % args.localport)
+    if args.listen and not args.localport:
+        fatal("[-] Listening requires a port to be specified with -p")
 
+	## Hostname/IP to connect to
     if args.host:
-        # Verify hostname/IP address
         Settings.ip = args.host
         if valid_ip_address(Settings.ip) is False:
             if Settings.get("dns") is False:
@@ -364,23 +380,26 @@ def parse_cli():
             else:
                 fatal("[-] Invalid hostname: %s" % Settings.ip)
 
+	## Port or port range
     if args.port:
         Settings.ports = build_port_list(args.port)
         if Settings.ports is None:
             fatal("Invalid port range: %s" % args.port)
-
         if args.randomize:
             random.shuffle(Settings.ports)
 
-    if args.localport:
-        if valid_port(args.localport):
-            Settings.port = int(args.localport)
-        else:
-            fatal("[-] Invalid port: %s" % args.localport)
+    # TODO port and ports? nc default behavior is to attempt to bind() the
+    #      port specified with -p, but "nc host port -p X" doesn't appear to
+    #      use the -p value (but does still try to bind() it)
+    #
+    #      This can probably left as is for now to mimick netcat's behavior
+    #      more accurately, but from rudimentary checks, -p seems to be
+    #      ignored if 'ports' is specified.
 
-    # TODO port and ports? nc default behavior is to attempt to bind() -p
-    # TODO -l has to have -p, but -p doesn't need -l
-    # TODO if port list is more than one port, -z must be set (or assumed)
+    # if port list contains more than one port, -z must be set (or assumed)
+    if len(Settings.ports) > 1:
+        Settings.set("zero", True)
+
     return args
 
 

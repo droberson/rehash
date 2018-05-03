@@ -33,14 +33,17 @@ class Settings(object):
         "exec" : None,
         "family" : None,
         "interval" : 0,
+        "ip" : None,
         "ipv4" : False,
         "ipv6" : False,
         "keepalive" : False,
         "listen" : False,
         "logfile" : None,
         "outfile" : None,
-        "port" : None,
+        "localport" : None,
+        "ports" : [],
         "randomize" : False,
+        "resolved" : None,
         "socktype" : socket.SOCK_STREAM,
         "source" : None,
         "telnet" : False,
@@ -59,13 +62,16 @@ class Settings(object):
         "exec",
         "family",
         "interval",
+        "ip",
         "ipv4",
         "ipv6",
         "keepalive",
         "listen",
         "outfile",
-        "port",
+        "localport",
+        "ports",
         "randomize",
+        "resolved",
         "socktype",
         "source",
         "telnet",
@@ -75,11 +81,6 @@ class Settings(object):
         "wait",
         "zero",
     ]
-
-    # TODO make these settings instead of variables
-    ip = ""
-    resolved = ""
-    ports = []
 
     @staticmethod
     def get(name):
@@ -275,7 +276,7 @@ def parse_cli():
         help="Host to connect to")
 
     parser.add_argument(
-        "port",
+        "ports",
         action="store",
         nargs="?",
         help="Port or range of ports. ex: 1-1024,8080")
@@ -365,32 +366,34 @@ def parse_cli():
         fatal("[-] Specified a host and -l option")
     if args.localport:
         if valid_port(args.localport):
-            Settings.port = int(args.localport)
+            Settings.set("localport", int(args.localport))
         else:
             fatal("[-] Invalid port: %s" % args.localport)
     if args.listen and not args.localport:
         fatal("[-] Listening requires a port to be specified with -p")
 
 	## Hostname/IP to connect to
-    if args.host and not args.port:
+    if args.host and not args.ports:
         fatal("[-] Must supply port or port range")
     if args.host:
-        Settings.ip = args.host
-        if valid_ip_address(Settings.ip) is False:
+        Settings.set("ip", args.host)
+        if valid_ip_address(Settings.get("ip")) is False:
             if Settings.get("dns") is False:
-                fatal("[-] Invalid IP address: %s" % Settings.ip)
-            if hostname_to_ip(Settings.ip):
-                Settings.resolved = args.host
+                fatal("[-] Invalid IP address: %s" % Settings.get("ip"))
+            if hostname_to_ip(Settings.get("ip")):
+                Settings.set("resolved", args.host)
             else:
-                fatal("[-] Invalid hostname: %s" % Settings.ip)
+                fatal("[-] Invalid hostname: %s" % Settings.get("ip"))
 
 	## Port or port range
-    if args.port:
-        Settings.ports = build_port_list(args.port)
-        if Settings.ports is None:
-            fatal("Invalid port range: %s" % args.port)
+    if args.ports:
+        Settings.set("ports", build_port_list(args.ports))
+        if Settings.get("ports") is None:
+            fatal("Invalid port range: %s" % args.ports)
         if args.randomize:
-            random.shuffle(Settings.ports)
+            tmp = Settings.get("ports")
+            random.shuffle(tmp)
+            Settings.set("ports", tmp)
 
     # TODO port and ports? nc default behavior is to attempt to bind() the
     #      port specified with -p, but "nc host port -p X" doesn't appear to
@@ -401,7 +404,7 @@ def parse_cli():
     #      ignored if 'ports' is specified.
 
     # if port list contains more than one port, -z must be set (or assumed)
-    if len(Settings.ports) > 1:
+    if len(Settings.get("ports")) > 1:
         Settings.set("zero", True)
 
     return args

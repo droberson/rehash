@@ -11,7 +11,6 @@
 import os
 import sys
 import socket
-import string
 import random
 import argparse
 
@@ -125,13 +124,13 @@ def fatal(msg):
 
 
 def parse_cli():
-    """ parse_cli() -- Parse CLI arguments and check for sanity.
+    """ parse_cli() -- Parse CLI arguments and perform sanity checks.
 
     Args:
         None
 
     Returns:
-        ArgumentParser namespace of supplied CLI options
+        Nothing
     """
     description = \
         "rehash version " + VERSION + " by Daniel Roberson @dmfroberson"
@@ -305,10 +304,8 @@ def parse_cli():
     if args.ipv4 and args.ipv6:
         parser.print_help(sys.stderr)
         fatal("[-] Specified IPv4 and IPv6")
-
     if not args.ipv4 and not args.ipv6:
         args.ipv4 = True
-
     if args.ipv4:
         Settings.set("family", socket.AF_INET)
     if args.ipv6:
@@ -356,7 +353,7 @@ def parse_cli():
 	## Timeout
     if args.wait:
         try:
-       	    Settings.set("wait", float(args.wait))
+            Settings.set("wait", float(args.wait))
         except ValueError:
             fatal("[-] Value supplied for -w is not a number: %s" % args.wait)
 
@@ -407,8 +404,6 @@ def parse_cli():
     if len(Settings.get("ports")) > 1:
         Settings.set("zero", True)
 
-    return args
-
 
 def main():
     """ main function -- entry point of the program.
@@ -420,7 +415,7 @@ def main():
         EX_OK on success
         EX_USAGE on failure
     """
-    args = parse_cli()
+    parse_cli()
 
     return os.EX_OK
 

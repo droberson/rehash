@@ -354,8 +354,10 @@ def parse_cli():
 
 	## Timeout
     if args.wait:
-        Settings.set("wait", float(args.wait))
-        print(Settings.get("wait"))
+        try:
+       	    Settings.set("wait", float(args.wait))
+        except ValueError:
+            fatal("[-] Value supplied for -w is not a number: %s" % args.wait)
 
 	## Listening
     if args.host and args.listen:
@@ -370,6 +372,8 @@ def parse_cli():
         fatal("[-] Listening requires a port to be specified with -p")
 
 	## Hostname/IP to connect to
+    if args.host and not args.port:
+        fatal("[-] Must supply port or port range")
     if args.host:
         Settings.ip = args.host
         if valid_ip_address(Settings.ip) is False:

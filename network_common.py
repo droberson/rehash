@@ -73,12 +73,29 @@ def network_from_cidr(ip_address, cidrmask):
 
 def hostname_to_ip(hostname):
     try:
-        resolved = socket.getaddrinfo(hostname,
-                                                  0,
-                                                  0,
-                                                  socket.SOCK_STREAM)
+        resolved = socket.getaddrinfo(hostname, 0, 0, socket.SOCK_STREAM)
     except socket.gaierror:
         return None
-
     return resolved[0][4][0]
+
+
+def protocol_from_socktype(socktype):
+    if socktype == socket.SOCK_STREAM:
+        return "tcp"
+    elif socktype == socket.SOCK_DGRAM:
+        return "udp"
+    else:
+        return None
+
+
+def portlist_from_services(protocol):
+    ports = []
+    with open("/etc/services") as services:
+        for line in services:
+            if line.startswith("#") or line.isspace():
+                continue
+            tmp = line.split()
+            if protocol in tmp[1]:
+                ports.append(tmp[1].split("/")[0])
+    return ports
 

@@ -3,7 +3,6 @@
 """ rehash.py -- Netcat-like hacking harness.
       by Daniel Roberson @dmfroberson                   April/2018
 
-    TODO: -F option to populate ports list via /etc/services
     TODO: named ports. ex: ./rehash.py localhost ssh
     TODO: option to log outfile in pcap format?
 """
@@ -31,6 +30,7 @@ class Settings(object):
         "dns" : True,
         "exec" : None,
         "family" : None,
+        "fast" : False,
         "interval" : 0,
         "ip" : None,
         "ipv4" : False,
@@ -60,6 +60,7 @@ class Settings(object):
         "dns",
         "exec",
         "family",
+        "fast",
         "interval",
         "ip",
         "ipv4",
@@ -173,6 +174,13 @@ def parse_cli():
         "--exec",
         default=None,
         help="Program to execute after connection is established. ex: /bin/sh")
+
+    parser.add_argument(
+        "-F",
+        "--fast",
+        action="store_true",
+        default=False,
+        help="Use ports from /etc/services")
 
     parser.add_argument(
         "-i",
@@ -292,6 +300,7 @@ def parse_cli():
     Settings.set("ipv6", args.ipv6)
     Settings.set("broadcast", args.broadcast)
     Settings.set("crlf", args.crlf)
+    Settings.set("fast", args.fast)
     Settings.set("keepalive", args.keepalive)
     Settings.set("listen", args.listen)
     Settings.set("randomize", args.randomize)
@@ -328,6 +337,14 @@ def parse_cli():
     ## Toggle UDP mode
     if Settings.get("udp") is True:
         Settings.set("socktype", socket.SOCK_DGRAM)
+
+    ## Fast mode
+    if Settings.get("fast") is True:
+        protocol = protocol_from_socktype(Settings.get("socktype"))
+        if protocol:
+            Settings.set("ports", portlist_from_services(protocol))
+        else:
+            fatal("[-] Invalid socktype")
 
     ## Deal with --command and --exec
     if args.command and args.exec:
@@ -369,8 +386,14 @@ def parse_cli():
     if args.listen and not args.localport:
         fatal("[-] Listening requires a port to be specified with -p")
 
+    ## Port or port range
+    if args.ports:
+        Settings.set("ports", build_port_list(args.ports))
+        if Settings.get("ports") is None:
+            fatal("[-] Invalid port range: %s" % args.ports)
+
 	## Hostname/IP to connect to
-    if args.host and not args.ports:
+    if args.host and not Settings.get("ports"):
         fatal("[-] Must supply port or port range")
     if args.host:
         Settings.set("ip", args.host)
@@ -382,15 +405,11 @@ def parse_cli():
             else:
                 fatal("[-] Invalid hostname: %s" % Settings.get("ip"))
 
-	## Port or port range
-    if args.ports:
-        Settings.set("ports", build_port_list(args.ports))
-        if Settings.get("ports") is None:
-            fatal("Invalid port range: %s" % args.ports)
-        if args.randomize:
-            tmp = Settings.get("ports")
-            random.shuffle(tmp)
-            Settings.set("ports", tmp)
+    ## Randomize ports
+    if args.randomize and Settings.get("ports"):
+        randomized = Settings.get("ports")
+        random.shuffle(randomized)
+        Settings.set("ports", randomized)
 
     # TODO port and ports? nc default behavior is to attempt to bind() the
     #      port specified with -p, but "nc host port -p X" doesn't appear to

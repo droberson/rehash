@@ -89,6 +89,7 @@ def protocol_from_socktype(socktype):
 
 
 def portlist_from_services(protocol):
+    # TODO change location of services file if on Windows
     ports = []
     with open("/etc/services") as services:
         for line in services:

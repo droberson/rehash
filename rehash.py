@@ -11,6 +11,7 @@ import os
 import sys
 import socket
 import random
+import select
 import argparse
 
 from network_common import *
@@ -274,7 +275,6 @@ def parse_cli():
         default=False,
         help="Zero IO mode (for scanning)")
 
-
     # Positional Arguments
     parser.add_argument(
         "host",
@@ -454,13 +454,30 @@ def main():
         try:
             sock.connect((Settings.get("ip"), port))
             print("Connected")
-            # TODO select() or similar for this
-            while True:
-                client_send = input()
-                # TODO CRLF
-                sock.send(client_send.encode() + "\n".encode())
-                client_recv = sock.recv(1024).rstrip()
-                print(client_recv)
+            connected = True
+            while connected:
+                select_list = [sys.stdin, sock]
+                sel_r, sel_w, sel_e = select.select(select_list, [], [])
+
+                for sock_r in sel_r:
+                    if sock_r == sys.stdin:
+                        client_input = sys.stdin.readline()
+                        sock.send(client_input.encode())
+                    elif sock_r == sock:
+                        client_recv = sock.recv(1024).rstrip()
+                        if client_recv:
+                            print(client_recv.decode())
+                        else:
+                            sock.close()
+                            connected = False
+                            break
+                for sock_w in sel_w:
+                    print("write:")
+                    print(sock_w)
+                for sock_e in sel_e:
+                    print("error:")
+                    print(sock_e)
+
         except socket.timeout:
             print("Timed out")
         except ConnectionRefusedError:
@@ -469,13 +486,17 @@ def main():
             print("Broken Pipe")
         except EOFError:
             print("EOF")
-
+        except KeyboardInterrupt:
+            try:
+                print()
+                sys.stdout.write("rehash> ")
+                cmd = input()
+                print("you entered %s" % cmd)
+            except KeyboardInterrupt:
+                return os.EX_OK
     return os.EX_OK
 
 
 if __name__ == "__main__":
-    try:
-        exit(main())
-    except KeyboardInterrupt:
-        exit(os.EX_OK)
+    exit(main())
 

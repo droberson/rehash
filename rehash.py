@@ -32,7 +32,7 @@ class Settings(object):
         "family" : None,
         "fast" : False,
         "interval" : 0,
-        "ip" : None,
+        "ip" : "0.0.0.0",
         "ipv4" : False,
         "ipv6" : False,
         "keepalive" : False,
@@ -375,9 +375,6 @@ def parse_cli():
             fatal("[-] Value supplied for -w is not a number: %s" % args.wait)
 
 	## Listening
-    if args.host and args.listen:
-        parser.print_help(sys.stderr)
-        fatal("[-] Specified a host and -l option")
     if args.localport:
         if valid_port(args.localport):
             Settings.set("localport", int(args.localport))
@@ -393,7 +390,7 @@ def parse_cli():
             fatal("[-] Invalid port range: %s" % args.ports)
 
 	## Hostname/IP to connect to
-    if args.host and not Settings.get("ports"):
+    if args.host and not Settings.get("ports") and not Settings.get("listen"):
         fatal("[-] Must supply port or port range")
     if args.host:
         Settings.set("ip", args.host)
@@ -423,6 +420,12 @@ def parse_cli():
     if len(Settings.get("ports")) > 1:
         Settings.set("zero", True)
 
+    # Finally, listen must be set up or an IP set in order to continue
+    if Settings.get("ports") is None and Settings.get("listen") is False:
+        parser.print_help(sys.stderr)
+        print(Settings.get("ports"))
+        exit(os.EX_USAGE)
+
 
 def main():
     """ main function -- entry point of the program.
@@ -435,6 +438,37 @@ def main():
         EX_USAGE on failure
     """
     parse_cli()
+
+    # listen
+    if Settings.get("listen") is True:
+        #
+        print("listen %s:%s" % (Settings.get("ip"), Settings.get("localport")))
+        return os.EX_OK
+
+    # connect
+    for port in Settings.get("ports"):
+        sys.stdout.write("Connect to %s:%s " % (Settings.get("ip"), port))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if Settings.get("wait"):
+            sock.settimeout(Settings.get("wait"))
+        try:
+            sock.connect((Settings.get("ip"), port))
+            print("Connected")
+            # TODO select() or similar for this
+            while True:
+                client_send = input()
+                # TODO CRLF
+                sock.send(client_send.encode() + "\n".encode())
+                client_recv = sock.recv(1024).rstrip()
+                print(client_recv)
+        except socket.timeout:
+            print("Timed out")
+            continue
+        except ConnectionRefusedError:
+            print("Connection refused")
+            continue
+        except BrokenPipeError:
+            print("Broken Pipe")
 
     return os.EX_OK
 

@@ -1,3 +1,8 @@
+""" network_common.py -- Various networking-related things
+
+    TODO: docstrings
+"""
+
 import socket
 import struct
 import string

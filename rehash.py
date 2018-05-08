@@ -463,12 +463,12 @@ def main():
                 print(client_recv)
         except socket.timeout:
             print("Timed out")
-            continue
         except ConnectionRefusedError:
             print("Connection refused")
-            continue
         except BrokenPipeError:
             print("Broken Pipe")
+        except EOFError:
+            print("EOF")
 
     return os.EX_OK
 

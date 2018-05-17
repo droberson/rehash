@@ -385,7 +385,7 @@ def parse_cli():
 
     ## Port or port range
     if args.ports:
-        Settings.set("ports", build_port_list(args.ports))
+        Settings.set("ports", build_portlist(args.ports))
         if Settings.get("ports") is None:
             fatal("[-] Invalid port range: %s" % args.ports)
 

@@ -39,7 +39,7 @@ def valid_port(port):
 
 
 # Nmap style port ranges: 1-5,10,60-90,100
-def build_port_list(portlist):
+def build_portlist(portlist):
     allowed = set(string.digits + "-" + ",")
     if (set(portlist) <= allowed) is False:
         return None

@@ -5,6 +5,7 @@
 
     TODO: named ports. ex: ./rehash.py localhost ssh
     TODO: option to log outfile in pcap format?
+    TODO: implement listening
 """
 
 import os
@@ -13,6 +14,8 @@ import socket
 import random
 import select
 import argparse
+
+import cmdprompt
 
 from network_common import *
 
@@ -441,7 +444,7 @@ def main():
 
     # listen
     if Settings.get("listen") is True:
-        #
+        # TODO: implement listening.
         print("listen %s:%s" % (Settings.get("ip"), Settings.get("localport")))
         return os.EX_OK
 
@@ -455,7 +458,21 @@ def main():
             sock.connect((Settings.get("ip"), port))
             print("Connected")
             connected = True
-            while connected:
+        except socket.timeout:
+            print("Timed out")
+            return os.EX_USAGE
+        except ConnectionRefusedError:
+            print("Connection refused")
+            return os.EX_USAGE
+        except BrokenPipeError:
+            print("Broken pipe")
+            return os.EX_USAGE
+        except EOFError:
+            print("EOF")
+            return os.EX_USAGE
+
+        while connected:
+            try:
                 select_list = [sys.stdin, sock]
                 sel_r, sel_w, sel_e = select.select(select_list, [], [])
 
@@ -477,23 +494,19 @@ def main():
                 for sock_e in sel_e:
                     print("error:")
                     print(sock_e)
-
-        except socket.timeout:
-            print("Timed out")
-        except ConnectionRefusedError:
-            print("Connection refused")
-        except BrokenPipeError:
-            print("Broken Pipe")
-        except EOFError:
-            print("EOF")
-        except KeyboardInterrupt:
-            try:
-                print()
-                sys.stdout.write("rehash> ")
-                cmd = input()
-                print("you entered %s" % cmd)
             except KeyboardInterrupt:
-                return os.EX_OK
+                cmdprompt.prompt(sock)
+                #try:
+                #    print()
+                #    sys.stdout.write("rehash> ")
+                #    cmdline = input()
+                #    command = cmdline.split()[0]
+                #    for valid_command in cmdprompt.commands:
+                #        if valid_command[0] == command:
+                #            print(command)
+                #            valid_command[1](sock, cmdline)
+                #except (EOFError, KeyboardInterrupt):
+                #    return os.EX_OK
     return os.EX_OK
 
 

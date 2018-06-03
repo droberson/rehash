@@ -1,3 +1,6 @@
+'''
+This is useless. Just a simple example of adding a command to the prompt.
+'''
 from .commands import *
 
 

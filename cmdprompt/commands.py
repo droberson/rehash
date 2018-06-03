@@ -4,7 +4,7 @@ import sys
 commands = []
 commandhelp = []
 
-# TODO exit, get, put
+# TODO get, put
 def prompt(sock):
     do_prompt = True
     print()

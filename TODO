@@ -32,7 +32,6 @@
   - home directories
 - subrute
 - curl/wget portscan 
-- upgrade to pty
 - find security tools installed
 - mimipenguin
 - gdbrpc/ptrace injector

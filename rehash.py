@@ -4,8 +4,14 @@
       by Daniel Roberson @dmfroberson                   April/2018
 
     TODO: named ports. ex: ./rehash.py localhost ssh
-    TODO: option to log outfile in pcap format?
-    TODO: implement listening
+    TODO: logging + option to log outfile in pcap format?
+    TODO: implement -e
+    TODO: implement -k
+    TODO: implement UDP
+    TODO: IPv6
+    TODO: Telnet negotiation
+    TODO: ToS
+    TODO: verbose output
 """
 
 import os
@@ -444,13 +450,51 @@ def main():
 
     # listen
     if Settings.get("listen") is True:
-        # TODO: implement listening.
-        print("listen %s:%s" % (Settings.get("ip"), Settings.get("localport")))
+        # TODO: implement -k keepalive
+        print("Listening on %s:%s" % \
+            (Settings.get("ip"), Settings.get("localport")))
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error:
+            # TODO reason?
+            fatal("[-] Failed to create socket.")
+        sock.bind((Settings.get("ip"), Settings.get("localport")))
+        sock.listen(5)
+        client, address = sock.accept()
+        # client = socket for client.
+        # address[0] = ip of client, address[1] = remote port
+        print("Client connected: %s:%s" % (address[0], address[1]))
+        connected = True
+
+        while connected:
+            try:
+                select_list = [sys.stdin, client]
+                sel_r, sel_w, sel_e = select.select(select_list, [], [])
+
+                for sock_r in sel_r:
+                    if sock_r == sys.stdin:
+                        client_input = sys.stdin.readline()
+                        client.send(client_input.encode())
+                    elif sock_r == client:
+                        client_recv = client.recv(1024).rstrip()
+                        if client_recv:
+                            print(client_recv.decode())
+                        else:
+                            client.close()
+                            connected = False
+                            break
+                for sock_w in sel_w:
+                    print("write: ", sock_w)
+                for sock_e in sel_e:
+                    print("error: ", sock_e)
+            except KeyboardInterrupt:
+                cmdprompt.prompt(client)
         return os.EX_OK
 
     # connect
     for port in Settings.get("ports"):
-        sys.stdout.write("Connect to %s:%s " % (Settings.get("ip"), port))
+        sys.stdout.write("Connecting to %s:%s " % (Settings.get("ip"), port))
+        # TODO error check socket()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if Settings.get("wait"):
             sock.settimeout(Settings.get("wait"))
@@ -496,17 +540,6 @@ def main():
                     print(sock_e)
             except KeyboardInterrupt:
                 cmdprompt.prompt(sock)
-                #try:
-                #    print()
-                #    sys.stdout.write("rehash> ")
-                #    cmdline = input()
-                #    command = cmdline.split()[0]
-                #    for valid_command in cmdprompt.commands:
-                #        if valid_command[0] == command:
-                #            print(command)
-                #            valid_command[1](sock, cmdline)
-                #except (EOFError, KeyboardInterrupt):
-                #    return os.EX_OK
     return os.EX_OK
 
 

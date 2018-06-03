@@ -1,3 +1,9 @@
+"""
+upgrayedd command.
+
+Tries the pty.spawn("/bin/bash") trick to upgrade shell to pty.
+"""
+
 from .commands import *
 
 
@@ -6,5 +12,5 @@ def cmd_upgrayedd(sock, cmdline):
     sock.send(upgrayedd.encode())
 
 commands.append(("upgrayedd", cmd_upgrayedd))
-commandhelp.append(("upgrayedd", "Attempts to spawn a pty using Python"))
+commandhelp.append(("upgrayedd", "attempt to spawn a pty using Python."))
 

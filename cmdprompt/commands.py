@@ -18,8 +18,10 @@ def prompt(sock):
                     do_prompt = False
                     valid_command[1](sock, cmdline_input)
                     break
-            print("Invalid command: %s" % cmdline_input.split()[0])
+            if do_prompt == True:
+                print("Invalid command: %s" % cmdline_input.split()[0])
         # Control-C and Control-D exit the program
         except (EOFError, KeyboardInterrupt):
+            sock.close()
             exit(os.EX_OK)
 

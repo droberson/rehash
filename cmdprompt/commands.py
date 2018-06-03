@@ -1,3 +1,8 @@
+"""
+main file for the command prompt functionality of rehash
+
+Contains global variables for commands/help menus and the prompt() function
+"""
 import os
 import sys
 

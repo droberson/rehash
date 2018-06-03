@@ -12,6 +12,7 @@
     TODO: Telnet negotiation
     TODO: ToS
     TODO: verbose output
+    TODO: implement --open feature for port scanning to only show open ports
 """
 
 import os
@@ -493,7 +494,8 @@ def main():
 
     # connect
     for port in Settings.get("ports"):
-        sys.stdout.write("Connecting to %s:%s " % (Settings.get("ip"), port))
+        connected = False
+        sys.stdout.write("Connecting to %s:%s - " % (Settings.get("ip"), port))
         # TODO error check socket()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if Settings.get("wait"):
@@ -501,20 +503,20 @@ def main():
         try:
             sock.connect((Settings.get("ip"), port))
             print("Connected")
-            connected = True
+            if len(Settings.get("ports")) == 1:
+                # only proceed if this is a singular port, otherwise treat
+                # this as if it were a portscan
+                connected = True
         except socket.timeout:
             print("Timed out")
-            return os.EX_USAGE
         except ConnectionRefusedError:
             print("Connection refused")
-            return os.EX_USAGE
         except BrokenPipeError:
             print("Broken pipe")
-            return os.EX_USAGE
         except EOFError:
             print("EOF")
-            return os.EX_USAGE
 
+        # Socket is connected. Do select() loop and process data as it comes
         while connected:
             try:
                 select_list = [sys.stdin, sock]
@@ -523,8 +525,20 @@ def main():
                 for sock_r in sel_r:
                     if sock_r == sys.stdin:
                         client_input = sys.stdin.readline()
-                        sock.send(client_input.encode())
-                    elif sock_r == sock:
+                        if client_input == "":
+                            # EOF reached. Read data and exit.
+                            # Set timeout so it doesnt block on recv() forever
+                            sock.settimeout(0.1)
+                            while connected:
+                                client_recv = sock.recv(1024).rstrip()
+                                if client_recv != "":
+                                    print(client_recv.decode())
+                                else:
+                                    sock.close()
+                                    connected = False
+                        else:
+                            sock.send(client_input.encode())
+                    if sock_r == sock:
                         client_recv = sock.recv(1024).rstrip()
                         if client_recv:
                             print(client_recv.decode())
@@ -533,11 +547,11 @@ def main():
                             connected = False
                             break
                 for sock_w in sel_w:
-                    print("write:")
-                    print(sock_w)
+                    print("write: ", sock_w)
                 for sock_e in sel_e:
-                    print("error:")
-                    print(sock_e)
+                    print("error: ", sock_e)
+            except socket.timeout:
+                return os.EX_OK
             except KeyboardInterrupt:
                 cmdprompt.prompt(sock)
     return os.EX_OK
